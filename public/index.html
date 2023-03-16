@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>BLOG</title>
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<link href="comments.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+
+	    <nav class="navtop">
+	    	<div>
+	    		<h1>BLOG</h1>
+	    	</div>
+	    </nav>
+
+		<div class="content home">
+
+			<h2>Article</h2>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam tristique vel leo a vestibulum. Praesent varius ex elit, vitae pretium felis laoreet in. Nullam sit amet pretium nulla. Aliquam convallis sem vitae tincidunt pulvinar. Integer id ex efficitur, vulputate ante et, vulputate risus. Maecenas ac nunc est. Donec nisl turpis, aliquet quis turpis mollis, dictum pulvinar est. Vivamus ut suscipit turpis. Sed metus leo, dignissim non vehicula non, tincidunt ac velit. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+
+			<p>Nunc id lacinia mauris. Aliquam pellentesque orci et neque egestas, vel lobortis risus egestas. Curabitur non rhoncus nibh. Donec ante lorem, luctus eget ex eget, malesuada ornare nisl. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Etiam consectetur egestas magna non dignissim. Pellentesque sit amet mollis mauris. Nunc quis arcu ac diam tempus auctor. Proin nec commodo nisl. Duis gravida lorem quis ipsum mattis, id finibus tortor pretium. Nam maximus pretium nisi, ullamcorper tincidunt dolor sagittis ac. Donec suscipit neque lectus, id fringilla tortor pellentesque ut. Maecenas quam lectus, pharetra vitae commodo sit amet, iaculis quis massa. Aenean varius quam quis posuere viverra. Nullam varius condimentum sem, sit amet bibendum augue porttitor in.</p>
+		</div>
+
+<div class="comment_header">
+    <!--<span class="total"><?=$comments_info['total_comments']?> comments</span>-->
+    <a href="#" class="write_comment_btn" data-comment-id="-1">Write Comment</a>
+</div>
+
+<!--?php=show_write_comment_form()?-->
+
+<!--?=show_comments($comments)?-->
+
+<!-- This function is the template for the write comment form-->
+<script>
+function show_write_comment_form($parent_id = -1) {
+    $html =
+    <div class="write_comment" data-comment-id="' . $parent_id . '">
+        <form>
+            <input name="parent_id" type="hidden" value="' . $parent_id . '">
+            <input name="name" type="text" placeholder="Your Name" required>
+            <textarea name="content" placeholder="Write your comment here..." required></textarea>
+            <button type="submit">Submit Comment</button>
+        </form>
+    </div>
+    return $html;
+}
+</script>
+
+<!--This function will populate the comments and comments replies using a loop-->
+<script>
+function show_comments($comments, $parent_id = -1) {
+    $html = '';
+    if ($parent_id != -1) {
+        // If the comments are replies sort them by the "submit_date" column
+        array_multisort(array_column($comments, 'submit_date'), SORT_ASC, $comments);
+    }
+    // Iterate the comments using the foreach loop
+    foreach ($comments as $comment) {
+        if ($comment['parent_id'] == $parent_id) {
+            // Add the comment to the $html variable
+            $html .= '';
+                        <div class="comment">
+                <div>
+                    <h3 class="name">' . htmlspecialchars($comment['name'], ENT_QUOTES) . '</h3>
+                    <span class="date">' . time_elapsed_string($comment['submit_date']) . '</span>
+                </div>
+                <p class="content">' . nl2br(htmlspecialchars($comment['content'], ENT_QUOTES)) . '</p>
+                <a class="reply_comment_btn" href="#" data-comment-id="' . $comment['id'] . '">Reply</a>
+                ' . show_write_comment_form($comment['id']) . '
+                <div class="replies">
+                ' . show_comments($comments, $comment['id']) . '
+                </div>
+            </div>
+            ';
+        }
+    }
+    return $html;
+}
+</script>
+   
+
+<!-- Page ID needs to exist, this is used to determine which comments are for which page-->
+<script>
+if (isset($_GET['page_id'])) {
+    // Check if the submitted form variables exist
+    if (isset($_POST['name'], $_POST['content'])) {
+        // POST variables exist, insert a new comment into the MySQL comments table (user submitted form)
+        $stmt = $pdo->prepare('INSERT INTO comments (page_id, parent_id, name, content, submit_date) VALUES (?,?,?,?,NOW())');
+        $stmt->execute([ $_GET['page_id'], $_POST['parent_id'], $_POST['name'], $_POST['content'] ]);
+        exit('Your comment has been submitted!');
+    }
+    // Get all comments by the Page ID ordered by the submit date
+    $stmt = $pdo->prepare('SELECT * FROM comments WHERE page_id = ? ORDER BY submit_date DESC');
+    $stmt->execute([ $_GET['page_id'] ]);
+    $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Get the total number of comments
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS total_comments FROM comments WHERE page_id = ?');
+    $stmt->execute([ $_GET['page_id'] ]);
+    $comments_info = $stmt->fetch(PDO::FETCH_ASSOC);
+} else {
+    exit('No page ID specified!');
+}
+	?>
+
+ //Below function will convert datetime to time elapsed string
+function time_elapsed_string($datetime, $full = false) {
+    $now = new DateTime;
+    $ago = new DateTime($datetime);
+    $diff = $now->diff($ago);
+    $diff->w = floor($diff->d / 7);
+    $diff->d -= $diff->w * 7;
+    $string = array('y' => 'year', 'm' => 'month', 'w' => 'week', 'd' => 'day', 'h' => 'hour', 'i' => 'minute', 's' => 'second');
+    foreach ($string as $k => &$v) {
+        if ($diff->$k) {
+            $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
+        } else {
+            unset($string[$k]);
+        }
+    }
+    if (!$full) $string = array_slice($string, 0, 1);
+    return $string ? implode(', ', $string) . ' ago' : 'just now';
+}
+</script>
+
+	</body>
+</html>

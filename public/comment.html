@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+			<link href="comments.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<!-- This function is the template for the write comment form-->
+ function show_write_comment_form($parent_id = -1) {
+    $html =
+    <div class="write_comment" data-comment-id="' . $parent_id . '">
+        <form>
+            <input name="parent_id" type="hidden" value="' . $parent_id . '">
+            <input name="name" type="text" placeholder="Your Name" required>
+            <textarea name="content" placeholder="Write your comment here..." required></textarea>
+            <button type="submit">Submit Comment</button>
+        </form>
+    </div>
+    return $html;
+}
+
+
+</body>
+</html>
